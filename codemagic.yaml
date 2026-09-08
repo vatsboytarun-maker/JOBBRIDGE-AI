@@ -5,26 +5,35 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Prepare Flutter Android project
+      - name: Prepare and verify Android project
         script: |
+          set -e
           cd mobile
           flutter create . --platforms=android
           python3 - <<'PY'
           from pathlib import Path
-          p = Path("android/app/build.gradle.kts")
-          if p.exists():
-              s = p.read_text()
-              s = s.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
-              p.write_text(s)
+          candidates = [
+              Path("android/app/build.gradle.kts"),
+              Path("android/app/build.gradle"),
+          ]
+          for p in candidates:
+              if p.exists():
+                  s = p.read_text()
+                  s = s.replace("compileSdk = flutter.compileSdkVersion", "compileSdk = 36")
+                  s = s.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
+                  if "compileSdk = 36" not in s and "compileSdkVersion 36" not in s:
+                      raise SystemExit(f"Could not force compileSdk 36 in {p}")
+                  p.write_text(s)
+                  print(f"Verified {p}: compileSdk 36")
+                  break
           else:
-              p = Path("android/app/build.gradle")
-              s = p.read_text()
-              s = s.replace("compileSdkVersion flutter.compileSdkVersion", "compileSdkVersion 36")
-              p.write_text(s)
+              raise SystemExit("Android app Gradle file not found")
           PY
           flutter pub get
+          flutter analyze
       - name: Build release APK
         script: |
+          set -e
           cd mobile
           flutter build apk --release
     artifacts:
