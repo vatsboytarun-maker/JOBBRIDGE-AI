@@ -22,7 +22,63 @@ Future<void> extract()async{if(resume==null){note('Select resume first');return;
 void addCustom(){final v=custom.text.trim();if(v.isNotEmpty)setState(()=>{if(!found.contains(v))found.add(v);chosen.add(v);custom.clear();});}
 Future<void> open(String u)async{await launchUrl(Uri.parse(u),mode:LaunchMode.externalApplication);}
 void connect(String p){showDialog(context:context,builder:(c)=>AlertDialog(title:Text('Connect '+p),content:const Text('Login opens on the official portal. Complete login manually, then return and tap MARK CONNECTED. Passwords are not stored.'),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),OutlinedButton(onPressed:()=>open(portals[p]!),child:const Text('OPEN LOGIN')),FilledButton(onPressed:(){setState(()=>connected.add(p));Navigator.pop(c);note(p+' connected');},child:const Text('MARK CONNECTED'))]));}
-void askAndRemember(String question){final c=TextEditingController(text:savedAnswers[question]??'');bool remember=true;showDialog(context:context,builder:(ctx)=>StatefulBuilder(builder:(ctx,setD)=>AlertDialog(title:const Text('ACTION REQUIRED'),content:Column(mainAxisSize:MainAxisSize.min,crossAxisAlignment:CrossAxisAlignment.start,children:[Text(question),const SizedBox(height:12),TextField(controller:c,decoration:const InputDecoration(labelText:'Your answer',border:OutlineInputBorder())),CheckboxListTile(contentPadding:EdgeInsets.zero,value:remember,onChanged:(v)=>setD(()=>remember=v??true),title:const Text('Remember for future applications'))]),actions:[TextButton(onPressed:()=>Navigator.pop(ctx),child:const Text('Cancel')),FilledButton(onPressed:(){if(c.text.trim().isNotEmpty&&remember)setState(()=>savedAnswers[question]=c.text.trim());saveData();Navigator.pop(ctx);note(remember?'Answer saved for future':'Answer used once');},child:const Text('CONTINUE'))]));}
+void askAndRemember(String question) {
+  final controller = TextEditingController(text: savedAnswers[question] ?? '');
+  bool remember = true;
+  showDialog(
+    context: context,
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (dialogContext, setDialogState) {
+        return AlertDialog(
+          title: const Text('ACTION REQUIRED'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(question),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                decoration: const InputDecoration(
+                  labelText: 'Your answer',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: remember,
+                onChanged: (value) =>
+                    setDialogState(() => remember = value ?? true),
+                title: const Text('Remember for future applications'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (controller.text.trim().isNotEmpty && remember) {
+                  setState(() {
+                    savedAnswers[question] = controller.text.trim();
+                  });
+                  saveData();
+                }
+                Navigator.pop(dialogContext);
+                note(remember
+                    ? 'Answer saved for future'
+                    : 'Answer used once');
+              },
+              child: const Text('CONTINUE'),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
 String? similarAnswer(String question){final q=question.toLowerCase();for(final e in savedAnswers.entries){final k=e.key.toLowerCase();if(q==k||q.split(' ').any((w)=>w.length>4&&k.contains(w)))return e.value;}return null;}
 Widget nav(int n)=>Row(children:[if(page>0)OutlinedButton(onPressed:()=>setState(()=>page--),child:const Text('BACK')),const Spacer(),FilledButton(onPressed:()=>setState(()=>page=n),child:Text(n==5?'APPLY TO PORTALS →':'NEXT →'))]);
 Widget resumeStep()=>ListView(padding:const EdgeInsets.all(16),children:[const Text('STEP 1 — UPLOAD RESUME',style:TextStyle(fontSize:24,fontWeight:FontWeight.bold)),Card(child:ListTile(leading:const Icon(Icons.description,size:38),title:Text(resumeName),subtitle:const Text('PDF or DOCX'),trailing:FilledButton(onPressed:pick,child:const Text('SELECT')))),TextField(controller:api,decoration:const InputDecoration(labelText:'Live extraction backend URL',hintText:'Free backend URL',border:OutlineInputBorder())),const SizedBox(height:8),FilledButton.icon(onPressed:extract,icon:const Icon(Icons.auto_awesome),label:const Text('EXTRACT FROM RESUME')),nav(1)]);
