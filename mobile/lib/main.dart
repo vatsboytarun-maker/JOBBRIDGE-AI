@@ -19,7 +19,18 @@ Future<void> saveData()async{final p=await SharedPreferences.getInstance();for(f
 void note(String s)=>ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text(s)));
 Future<void> pick()async{final r=await FilePicker.platform.pickFiles(type:FileType.custom,allowedExtensions:['pdf','docx'],withData:true);if(r!=null&&r.files.single.bytes!=null)setState(()=>{resume=r.files.single,resumeName=resume!.name});}
 Future<void> extract()async{if(resume==null){note('Select resume first');return;}if(api.text.trim().isEmpty){note('Add backend URL for live extraction');return;}try{final u=Uri.parse(api.text.trim().replaceAll(RegExp(r'/$'),'')+'/resume/extract');final q=http.MultipartRequest('POST',u)..files.add(http.MultipartFile.fromBytes('file',resume!.bytes!,filename:resume!.name));final s=await q.send().timeout(const Duration(seconds:30));final b=await s.stream.bytesToString();if(s.statusCode==200){final d=jsonDecode(b);setState(()=>found..clear()..addAll((d['keywords']as List).map((e)=>e.toString())));note('Keywords extracted');}else{note('Extraction failed');}}catch(e){note('Backend not reachable');}}
-void addCustom(){final v=custom.text.trim();if(v.isNotEmpty)setState(()=>{if(!found.contains(v))found.add(v);chosen.add(v);custom.clear();});}
+void addCustom() {
+  final value = custom.text.trim();
+  if (value.isEmpty) return;
+  setState(() {
+    if (!found.contains(value)) {
+      found.add(value);
+    }
+    chosen.add(value);
+    custom.clear();
+  });
+  saveData();
+}
 Future<void> open(String u)async{await launchUrl(Uri.parse(u),mode:LaunchMode.externalApplication);}
 void connect(String p){showDialog(context:context,builder:(c)=>AlertDialog(title:Text('Connect '+p),content:const Text('Login opens on the official portal. Complete login manually, then return and tap MARK CONNECTED. Passwords are not stored.'),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('Cancel')),OutlinedButton(onPressed:()=>open(portals[p]!),child:const Text('OPEN LOGIN')),FilledButton(onPressed:(){setState(()=>connected.add(p));Navigator.pop(c);note(p+' connected');},child:const Text('MARK CONNECTED'))]));}
 void askAndRemember(String question) {
